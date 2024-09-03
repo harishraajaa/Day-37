@@ -8,7 +8,6 @@ const verifyAdmin = async(req,res,next)=>{
         
         let payload = auth.decodeToken(token)
         let user = await userModel.findOne({id:payload.id,email:payload.email,role:payload.role})
-        console.log(user)
         if(user && user.role==='admin')
         {
             next()
