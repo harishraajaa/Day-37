@@ -12,13 +12,13 @@ const recipeUserQuery = [
         }
     },
     {$unwind:"$recipeUser"},
-    {$project:{name:1,description:1,ingedrients:1,procedure:1,userid:1,id:1,author:"$recipeUser.name",email:"$recipeUser.email"}}
+    {$project:{name:1,description:1,ingredients:1,procedure:1,userId:1,id:1,author:"$recipeUser.name",email:"$recipeUser.email"}}
 ]
 
 const getAllRecipes = async(req,res)=>{
     try {
 
-        let recipes = await recipeModel.aggregate(recipeUserQuery)        
+        let recipes = await recipeModel.aggregate(recipeUserQuery) 
         res.status(200).send({
             message:"Data Fetch Successfull",
             data:recipes
@@ -48,10 +48,11 @@ const getAllRecipesByUserId = async(req,res)=>{
 
 const createRecipe = async(req,res)=>{
     try {
-        let user = await userModel.findOne({id:req.body.userId})
+        //console.log(req.headers)
+        let user = await userModel.findOne({id:req.headers.userId})
         if(user)
         {
-            await recipeModel.create(req.body)
+            await recipeModel.create({...req.body,userId:req.headers.userId})
             res.status(201).send({
                 message: "Recipe Added Successfully"
             })

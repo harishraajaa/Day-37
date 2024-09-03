@@ -62,7 +62,7 @@ const createUser=async(request,response)=>{
             //hash the password
             request.body.password=await auth.hashData(request.body.password)
             await userModel.create(request.body)
-            response.status(201 ).send({
+            response.status(201).send({
                 message:"User Created!!!"
             })
         }
@@ -75,6 +75,7 @@ const createUser=async(request,response)=>{
         
     } catch (error) {
         console.log("Error in createUser Endpoint")
+        console.log(error.message)
         response.status(500).send({
             message:"Internal Server Error",
             data:error.message
@@ -150,7 +151,8 @@ const login = async(req,res)=>{
                 })
                 res.status(200).send({
                     message:"Login Successfull",
-                    data:token
+                    token:token,
+                    role:user.role
                 })
             }
             else

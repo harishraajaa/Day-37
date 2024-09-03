@@ -9,6 +9,7 @@ const verifyAuth = async(req,res,next)=>{
         {
             
             req.headers.userId = payload.id
+            //console.log(payload.id)
             next()
         }
         else
