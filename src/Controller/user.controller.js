@@ -13,26 +13,32 @@ import Config from '../Model/Config.js'
 // }
 
 
-const sendEmail=async(user,link,hostname)=>{
+const sendEmail=async(user,token,hostname)=>{
     //mdwu zsql olgs rsiq
-    const transporter = nodemailer.createTransport({
-      host: "smtp.gmail.com",
-      port: 465, //587,
-      secure: true, // Use `true` for port 465, `false` for all other ports
-      auth: {
-        user: Config.smtpuser,
-        pass: Config.smtppwd,
-      }
-    })
-
-     await transporter.sendMail({
-      from: '"Harish Foods" <Notifications@harishfoods.com>', // sender address
-      to: `${user.email}`, // list of receivers
-      subject: "Password Reset Link", // Subject line
-      text: "Hello world?", // plain text body
-      html: `<b>Hi ${user.name},</b><br><br><p><b>Link for Password reset: </b>${hostname}${link}</p>`, // html body
-    });
-
+    try {
+        const transporter = nodemailer.createTransport({
+            host: "smtp.gmail.com",
+            port: 465, //587,
+            secure: true, // Use `true` for port 465, `false` for all other ports
+            auth: {
+              user: Config.smtpuser,
+              pass: Config.smtppwd,
+            }
+          })
+      
+           await transporter.sendMail({
+            from: '"Harish Foods" <Notifications@harishfoods.com>', // sender address
+            to: `${user.email}`, // list of receivers
+            subject: "Password Reset Link", // Subject line
+            text: "Hello world?", // plain text body
+            html: `<b>Hi ${user.name},</b><br><br><p><b>Link for Password reset: </b>${hostname}/resetpassword/${token}</p>
+            <br><br><p><b>Note:</b> Link will be valid for next 5 minutes.</p>`, // html body
+          });
+      
+        
+    } catch (error) {
+        console.log("Error in Send Email Function")
+    }
     console.log("Email sent")
 }
 
@@ -246,20 +252,16 @@ const forgetPassword=async(request,response)=>{
         let {email}=request.body
         let hostname=request.headers.origin
         let user=await userModel.findOne({email:email})
-        if (user){
-
-            let link = `/resetpassword/${user.id}`
+        if (user){            
             const token = auth.createToken({
                 email:user.email,
                 name:user.name,
                 role:user.role,
                 id:user.id
             })
-            sendEmail(user,link,hostname)
+            sendEmail(user,token,hostname)
             response.status(201).send({
                 message:"Link Created!!!",
-                link:link,
-                token:token
             })
         }
         else{
@@ -281,23 +283,34 @@ const resetPassword=async(request,response)=>{
     try {
 
         //let token = request.headers.authorization.split(' ')[1]
-        //let payload = auth.decodeToken(token)
-        //console.log(payload)
-            let {id}=request.params
-            let user = await userModel.findOne({ id:id })
-            if (user) {
-                let { newpassword } = request.body
-                user.password = await auth.hashData(newpassword)
-                await user.save()
+        let {id}=request.params
+        let payload = auth.decodeToken(id)
+        console.log(payload)
+        if(payload)
+            {
+                if(payload.exp > Math.floor(+new Date()/1000))
+                {
+                    let user = await userModel.findOne({ id:payload.id })
+                if (user) {
+                    let { newpassword } = request.body
+                    user.password = await auth.hashData(newpassword)
+                    await user.save()
                 
-                response.status(200).send({
-                    message: "Password Updated Successfully"
-                })
+                    response.status(200).send({
+                        message: "Password Updated Successfully"
+                    })
+                }
+                else {
+                    response.status(400).send({ message: "User not exists" })
+                }
+                }
+                else
+                response.status(401).send({message:"Session Expired"})
             }
-            else {
-                response.status(400).send({ message: "User not exists" })
-            }
-        
+            else
+            response.status(401).send({
+            message:"No Token Found"})
+            
         
     } catch (error) {
         console.log(`Error in ${request.originalUrl}`,error.message)
