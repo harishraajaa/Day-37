@@ -1,7 +1,7 @@
 import 'dotenv/config'
 import userModel from '../Model/user.model.js'
 import auth from '../Model/auth.js'
-
+import nodemailer from 'nodemailer'
  
 // function generateRandomID(len){
 //     const text='qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM1234567890'
@@ -10,6 +10,30 @@ import auth from '../Model/auth.js'
 //         random+=text[Math.floor(Math.random()*100)%62]
 //     return random
 // }
+
+
+const sendEmail=async(user,link,hostname)=>{
+    //mdwu zsql olgs rsiq
+    const transporter = nodemailer.createTransport({
+      host: "smtp.gmail.com",
+      port: 465, //587,
+      secure: true, // Use `true` for port 465, `false` for all other ports
+      auth: {
+        user: "rvharishraajaa@gmail.com",
+        pass: "mdwuzsqlolgsrsiq",
+      }
+    })
+
+     await transporter.sendMail({
+      from: '"Harish Foods" <Notifications@harishfoods.com>', // sender address
+      to: `${user.email}`, // list of receivers
+      subject: "Password Reset Link", // Subject line
+      text: "Hello world?", // plain text body
+      html: `<b>Hi ${user.name},</b><br><br><p><b>Link for Password reset: </b>${hostname}${link}</p>`, // html body
+    });
+
+    console.log("Email sent")
+}
 
 const getAllUser=async(request,response)=>{
 
@@ -215,4 +239,69 @@ const changePassword= async (request,response)=>{
     }
 }
 
-export default {getAllUser,createUser,getUserById,editUserById,deleteUserById,login, changePassword}
+const forgetPassword=async(request,response)=>{
+    
+    try {
+        let {email}=request.body
+        let hostname=request.headers.origin
+        let user=await userModel.findOne({email:email})
+        if (user){
+
+            let link = `/resetpassword/${user.id}`
+            const token = auth.createToken({
+                email:user.email,
+                name:user.name,
+                role:user.role,
+                id:user.id
+            })
+            sendEmail(user,link,hostname)
+            response.status(201).send({
+                message:"Link Created!!!",
+                link:link,
+                token:token
+            })
+        }
+        else{
+            response.status(400).send({
+                message:"User doesn't Exists!!!"
+            })
+        }
+        
+    } catch (error) {
+        console.log("Error in forgetPassword Endpoint")
+        response.status(500).send({
+            message:"Internal Server Error",
+            data:error.message
+        })
+    }
+}
+
+const resetPassword=async(request,response)=>{
+    try {
+
+        //let token = request.headers.authorization.split(' ')[1]
+        //let payload = auth.decodeToken(token)
+        //console.log(payload)
+            let {id}=request.params
+            let user = await userModel.findOne({ id:id })
+            if (user) {
+                let { newpassword } = request.body
+                user.password = await auth.hashData(newpassword)
+                await user.save()
+                
+                response.status(200).send({
+                    message: "Password Updated Successfully"
+                })
+            }
+            else {
+                response.status(400).send({ message: "User not exists" })
+            }
+        
+        
+    } catch (error) {
+        console.log(`Error in ${request.originalUrl}`,error.message)
+        response.status(500).send({ message: error.message || "Internal Server Error" })
+    }
+}
+
+export default {getAllUser,createUser,getUserById,editUserById,deleteUserById,login, changePassword,forgetPassword, resetPassword}
