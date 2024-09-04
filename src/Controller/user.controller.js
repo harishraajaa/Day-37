@@ -2,6 +2,7 @@ import 'dotenv/config'
 import userModel from '../Model/user.model.js'
 import auth from '../Model/auth.js'
 import nodemailer from 'nodemailer'
+import Config from '../Model/Config.js'
  
 // function generateRandomID(len){
 //     const text='qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM1234567890'
@@ -19,8 +20,8 @@ const sendEmail=async(user,link,hostname)=>{
       port: 465, //587,
       secure: true, // Use `true` for port 465, `false` for all other ports
       auth: {
-        user: "rvharishraajaa@gmail.com",
-        pass: "mdwuzsqlolgsrsiq",
+        user: Config.smtpuser,
+        pass: Config.smtppwd,
       }
     })
 
